@@ -63,9 +63,12 @@ cf_apps_array=$(curl "https://${cf_api_endpoint}/v2/apps" -X GET -H "Authorizati
 delete_apps=()
 for app in ${cf_apps_array[@]}; do
   flg=false
+  if [ "${app}" = "${app_prefix}-$(echo "${target_branch}" | sed "s/\//-/")" ]; then
+    continue
+  fi
   for br in ${open_merge_source[@]}; do
     target_app="${app_prefix}-$(echo "${br}" | sed "s/\//-/")"
-    if [ "${app}" = "${target_app}" ]; then
+    if  [ "${target_branch}" = "${br}" ] || [ "${app}" = "${target_app}" ]; then
       flg=true
       break
     fi
