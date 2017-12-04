@@ -11,6 +11,8 @@ env
 
 TMPDIR=${TMPDIR:-/tmp}
 
+source "$(dirname "$0")/common.sh"
+
 payload="$(mktemp "${TMPDIR}/gitlab-cf-diff-delete-resource.XXXXXX")"
 
 cat > "${payload}" <&0
