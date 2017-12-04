@@ -82,4 +82,6 @@ done
 new_version="${new_version#','}"
 new_version="[${new_version}]"
 
-jq -n "${new_versions}" >&3
+echo ${new_version}
+
+jq -n "${new_version}" >&3
