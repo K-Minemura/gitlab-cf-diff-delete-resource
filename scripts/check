@@ -28,6 +28,7 @@ cf_user="$(jq -r '.source.cf_user // ""' < "${payload}")"
 cf_password="$(jq -r '.source.cf_password // ""' < "${payload}")"
 cf_org="$(jq -r '.source.cf_org // ""' < "${payload}")"
 cf_space="$(jq -r '.source.cf_space // ""' < "${payload}")"
+cf_api_endpoint="$(jq -r '.source.cf_api_endpoint // ""' < "${payload}")"
 app_prefix="$(jq -r '.source.app_prefix // ""' < "${payload}")"
 version_app="$(jq -r '.version.app // ""' < "${payload}")"
 
@@ -53,7 +54,7 @@ for i in $(seq 0 $((num_mrs - 1))); do
     fi
 done
 
-cf api $cf_api --skip-ssl-validation
+cf api $cf_api_endpoint --skip-ssl-validation
 
 cf login -u $cf_user -p $cf_password -o "$cf_org" -s "$cf_space"
 oauth-token=$(cf oauth-token)
