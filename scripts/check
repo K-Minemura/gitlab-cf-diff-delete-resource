@@ -1,0 +1,82 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -u
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+pwd
+env
+
+TMPDIR=${TMPDIR:-/tmp}
+
+payload="$(mktemp "${TMPDIR}/gitlab-cf-diff-delete-resource.XXXXXX")"
+
+cat > "${payload}" <&0
+
+configure_ssl_verification "${payload}"
+
+uri="$(jq -r '.source.uri // ""' < "${payload}")"
+target_branch="$(jq -r '.source.branch // ""' < "${payload}")"
+private_token="$(jq -r '.source.private_token // ""' < "${payload}")"
+no_ssl="$(jq -r '.source.no_ssl // ""' < "${payload}")"
+cf_api="$(jq -r '.source.cf_api // ""' < "${payload}")"
+cf_user="$(jq -r '.source.cf_user // ""' < "${payload}")"
+cf_password="$(jq -r '.source.cf_password // ""' < "${payload}")"
+cf_org="$(jq -r '.source.cf_org // ""' < "${payload}")"
+cf_space="$(jq -r '.source.cf_space // ""' < "${payload}")"
+app_prefix="$(jq -r '.source.app_prefix // ""' < "${payload}")"
+version_app="$(jq -r '.version.app // ""' < "${payload}")"
+
+gitlab_host="$(echo "${uri}" | sed -rn 's/(https?):\/\/([^\/]*)\/(.*)\.git/\2/p')"
+project_path="$(echo "${uri}" | sed -rn 's/(https?):\/\/([^\/]*)\/(.*)\.git/\3/p')"
+protocol="$(echo "${uri}" | sed -rn 's/(https?):\/\/([^\/]*)\/(.*)\.git/\1/p')"
+
+if [ "${no_ssl}" == 'true' ]; then
+    protocol='http'
+fi
+
+open_mrs="$(curl -s -H "private-token: ${private_token}" "${protocol}://${gitlab_host}/api/v3/projects/$(urlencode "${project_path}")/merge_requests?state=opened&order_by=updated_at")"
+num_mrs="$(echo "${open_mrs}" | jq 'length')"
+
+open_merge_source=()
+
+for i in $(seq 0 $((num_mrs - 1))); do
+    mr="$(echo "${open_mrs}" | jq -r '.['"$i"']')"
+    mr_target="$(echo "${mr}" | jq -r '.target_branch')"
+    mr_source="$(echo "${mr}" | jq -r '.source_branch')"
+    if [ -z "${target_branch}" ] && [ "${mr_target}" = "${target_branch}" ]; then
+      open_merge_source+=(${mr_source})
+    fi
+done
+
+cf api $cf_api --skip-ssl-validation
+
+cf login -u $cf_user -p $cf_password -o "$cf_org" -s "$cf_space"
+oauth-token=$(cf oauth-token)
+cf_apps_array=$(curl "https://${cf_api}/v2/apps" -X GET -H "Authorization: ${oauth_token}" -H "Host: ${cf_api}" -H "Cookie: " | jq -r '.resources[].entity.name' | grep "${app_prefix}")
+
+delete_apps=()
+for app in ${cf_apps_array[@]}; do
+  flg=false
+  for br in ${open_merge_source[@]}; do
+    target_app="${app_prefix}-$(echo "${br}" | sed "s/\//-/")"
+    if [ "${app}" = "${target_app}" ]; then
+      flg=true
+      break
+    fi
+  done
+  if [ $flg = false ]; then
+    delete_apps+=(${app})
+  fi
+done
+
+new_version=""
+for app in ${delete_apps[@]}; do
+    new_version="${new_version},{\"app\":\"${app}\"}"
+done
+new_version="${new_version#','}"
+new_version="[${new_version}]"
+
+jq -n "${new_versions}" >&3
