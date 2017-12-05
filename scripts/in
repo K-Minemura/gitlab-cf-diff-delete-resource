@@ -8,29 +8,23 @@ exec 1>&2 # redirect all output to stderr for logging
 
 TMPDIR=${TMPDIR:-/tmp}
 
-source "$(dirname "$0")/common.sh"
-
 destination="$1"
 
 if [ -z "${destination}" ]; then
-    echo "Usage: $0 <path/to/destination>" >&2
-    exit 1
+  echo "Usage: $0 <path/to/destination>" >&2
+  exit 1
 fi
 
 payload="$(mktemp "${TMPDIR}/gitlab-cf-diff-delete-resource.XXXXXX")"
 
 cat > "${payload}" <&0
 
-configure_ssl_verification "${payload}"
-
-uri="$(jq -r '.source.uri // ""' < "${payload}")"
-username="$(jq -r '.source.username // ""' < "${payload}")"
-password="$(jq -r '.source.password // ""' < "${payload}")"
-private_key="$(jq -r '.source.private_key // ""' < "${payload}")"
 version="$(jq -r '.version // ""' < "${payload}")"
 target_app="$(echo "${version}" | jq -r '.app // ""')"
 
-echo ${target_app}
+mkdir "${destination}"
+cd "${destination}"
+echo "${target_app}" > appname.txt
 
 jq -n "{
     version: ${version}
