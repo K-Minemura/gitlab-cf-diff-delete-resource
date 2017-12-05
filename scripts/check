@@ -49,7 +49,8 @@ for i in $(seq 0 $((num_mrs - 1))); do
     mr="$(echo "${open_mrs}" | jq -r '.['"$i"']')"
     mr_target="$(echo "${mr}" | jq -r '.target_branch')"
     mr_source="$(echo "${mr}" | jq -r '.source_branch')"
-    if [ -z "${target_branch}" ] && [ "${mr_target}" = "${target_branch}" ]; then
+    echo "mr_target is [${mr_target}]" # TODO
+    if [ -z "${target_branch}" ] || [ "${mr_target}" = "${target_branch}" ]; then
       echo "source is [${mr_source}]" # TODO
       open_merge_source+=(${mr_source})
     fi
@@ -64,7 +65,7 @@ cf_apps_array=$(curl "https://${cf_api_endpoint}/v2/apps" -X GET -H "Authorizati
 delete_apps=()
 for app in ${cf_apps_array[@]}; do
   echo "app is [${app}]" # TODO
-  if [ "${app}" = "${app_prefix}-$(echo "${target_branch}" | sed "s/\//-/")" ]; then
+  if [ -n "${target_branch}" ] &&  [ "${app}" = "${app_prefix}-$(echo "${target_branch}" | sed "s/\//-/")" ]; then
     echo "continue!! [${app_prefix}-$(echo "${target_branch}" | sed "s/\//-/")]" # TODO
     continue
   fi
