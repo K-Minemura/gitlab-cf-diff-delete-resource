@@ -23,8 +23,6 @@ version="$(jq -r '.version // ""' < "${payload}")"
 target_app="$(echo "${version}" | jq -r '.app // ""')"
 
 cd "${destination}"
-mkdir "${destination}"
-cd "${destination}"
 echo "${target_app}" > appname.txt
 
 jq -n "{
