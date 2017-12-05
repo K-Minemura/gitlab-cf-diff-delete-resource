@@ -50,6 +50,7 @@ for i in $(seq 0 $((num_mrs - 1))); do
     mr_target="$(echo "${mr}" | jq -r '.target_branch')"
     mr_source="$(echo "${mr}" | jq -r '.source_branch')"
     if [ -z "${target_branch}" ] && [ "${mr_target}" = "${target_branch}" ]; then
+      echo "source is [${mr_source}]" # TODO
       open_merge_source+=(${mr_source})
     fi
 done
@@ -62,17 +63,24 @@ cf_apps_array=$(curl "https://${cf_api_endpoint}/v2/apps" -X GET -H "Authorizati
 
 delete_apps=()
 for app in ${cf_apps_array[@]}; do
+  echo "app is [${app}]" # TODO
   if [ "${app}" = "${app_prefix}-$(echo "${target_branch}" | sed "s/\//-/")" ]; then
+    echo "continue!! [${app_prefix}-$(echo "${target_branch}" | sed "s/\//-/")]" # TODO
     continue
   fi
   for br in ${open_merge_source[@]}; do
+    echo "br is [${br}]" # TODO
     target_app="${app_prefix}-$(echo "${br}" | sed "s/\//-/")"
+    echo "target_app is [${target_app}]" # TODO
     if [ "${app}" = "${target_app}" ]; then
+      echo "continue!! 2!!" # TODO
       continue 2
     fi
   done
   delete_apps+=(${app})
 done
+
+exit 1
 
 new_version=""
 for app in ${delete_apps[@]}; do
