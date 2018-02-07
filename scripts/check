@@ -58,7 +58,7 @@ cf api $cf_api_endpoint --skip-ssl-validation
 
 cf login -u $cf_user -p $cf_password -o "$cf_org" -s "$cf_space"
 oauth_token=$(cf oauth-token)
-cf_apps_array=$(curl "https://${cf_api_endpoint}/v2/apps" -X GET -H "Authorization: ${oauth_token}" -H "Host: ${cf_api_endpoint}" -H "Cookie: " | jq -r '.resources[].entity.name' | grep "${app_prefix}")
+cf_apps_array=$(curl "https://${cf_api_endpoint}/v2/apps" -X GET -H "Authorization: ${oauth_token}" -H "Host: ${cf_api_endpoint}" -H "Cookie: " | jq -r '.resources[].entity.name' | grep "^${app_prefix}-")
 
 delete_apps=()
 for app in ${cf_apps_array[@]}; do
